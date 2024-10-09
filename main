@@ -1,0 +1,61 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium import common
+import openpyxl
+import time
+from bs4 import BeautifulSoup as bs
+import requests
+
+def parse (el):
+    u=0
+    base=[]
+    text=(el.find_element(by=By.CLASS_NAME, value="td9.du.du0.du2.tsBodyL.ij3.j3i").find_elements(by=By.TAG_NAME, value="span"))
+    base.append(text[0].text)
+    url_ozon = el.find_element(by=By.CLASS_NAME, value="tile-hover-target.ij3.j3i").get_attribute('href')
+    base.append(url_ozon)
+    url_photo = el.find_element(by=By.CLASS_NAME, value="c9-a").get_attribute('src')
+    base.append(url_photo)
+    try:
+        p = el.find_element(by= By.CLASS_NAME, value="dr.rd.dr0.tsBodyMBold").find_element(by=By.TAG_NAME, value="svg")
+    except(common.NoSuchElementException):
+        raiting = '-'
+        u = 1
+    if u != 1:
+        raiting = el.find_element(by= By.CLASS_NAME, value="dr.rd.dr0.tsBodyMBold").find_elements(by=By.TAG_NAME, value="span")
+        raiting=raiting[1].text
+    else:
+        raiting = '-'
+    base.append(raiting)
+    info=el.find_element(by=By.CLASS_NAME, value="td9.du.du3.tsBodyM.ij3").find_elements(by=By.TAG_NAME, value="font")
+    q = len(info)
+    for j in range(0,q):
+        base.append(info[j].text)
+    return base
+def get_mouses(driver):
+    mouses = []
+    for i in range(3):
+        scroll(2,1,driver)
+    mouses.append(driver.find_elements(by=By.CLASS_NAME, value="i5m.mi5"))
+    return mouses
+def scroll(count, delay, driver):
+    for i in range(count):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(delay)
+def main():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    l=["Название","Ссылка на товар","Ссылка на фото","Рейтинг","Описание(Тип Мыши; Тип соединения; Интерфейс; Макс. dpi; Кол-во кнопок; Тип датчика)"]
+    ws.append(l)
+    for i in range (1,4):
+        ozon='https://www.ozon.ru/category/igrovye-myshi-15824/?deny_category_prediction=true&from_global=true&page='+str(i)+'&text=%D0%B8%D0%B3%D1%80%D0%BE%D0%B2%D0%B0%D1%8F+%D0%BC%D1%8B%D1%88%D1%8C&tf_state=2e_150xmVJBLJ4ktgrqZuTmxDhsYUGxDk_824euYt-rD8HcG'
+        options = webdriver.ChromeOptions()
+        driver = webdriver.Chrome('chromedriver.exe', options= options)
+        driver.get(ozon)
+        mouses = get_mouses(driver)
+        mouses = mouses[0]
+        for el in mouses:
+            data = parse(el)
+            ws.append(data)
+    wb.save("parser.xlsx")
+if __name__ == "__main__":
+    main()
